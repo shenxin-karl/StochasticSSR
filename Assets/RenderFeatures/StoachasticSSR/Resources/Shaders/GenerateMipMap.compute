@@ -1,0 +1,25 @@
+#pragma kernel CSMain
+#pragma multi_compile_local UNITY_REVERSED_Z
+
+Texture2D<float>    _SourceTex;
+RWTexture2D<float>  _ResultTex; 
+SamplerState gPointClampSampler;
+
+[numthreads(8, 8, 1)]
+void CSMain(uint2 id : SV_DispatchThreadID) {
+	float2 texDimes;
+	_SourceTex.GetDimensions(texDimes.x, texDimes.y);
+	float2 texSize = 1.0 / texDimes;
+	float2 texcoord = (id * 2.0 + 0.5) / texDimes;
+
+	float d0 = _SourceTex.SampleLevel(gPointClampSampler, texcoord + texSize * float2(0, 0), 0).r;
+	float d1 = _SourceTex.SampleLevel(gPointClampSampler, texcoord + texSize * float2(1, 0), 0).r;
+	float d2 = _SourceTex.SampleLevel(gPointClampSampler, texcoord + texSize * float2(0, 1), 0).r;
+	float d3 = _SourceTex.SampleLevel(gPointClampSampler, texcoord + texSize * float2(1, 1), 0).r;
+	#if defined(UNITY_REVERSED_Z)
+		float depth = max(max(d0, d1), max(d2, d3));
+	#else
+		float depth = min(min(d0, d1), min(d2, d3));
+	#endif
+	_ResultTex[id] = depth;
+}

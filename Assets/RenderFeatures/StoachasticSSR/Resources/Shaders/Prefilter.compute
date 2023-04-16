@@ -1,0 +1,66 @@
+#pragma kernel CSMain
+
+Texture2D<float3>   _SourceTex;
+RWTexture2D<float3> _ResultTex;
+int                 _SampleMipLevel;
+float4              _TexDimes;      // w, h, 1/w, 1/h
+SamplerState        gLinearClampSampler;
+
+static const float weights[9] = {
+	1.0 / 16.0,	  1.0 / 8.0,	1.0 / 16.0,
+	1.0 / 8.0,    1.0 / 4.0,    1.0 / 8.0,
+	1.0 / 16.0,   1.0 / 8.0,    1.0 / 16.0, 
+};
+
+#define BORDER_SIZE 1
+#define GROUP_SIZE_X 8
+#define GROUP_SIZE_Y 8
+#define GROUP_SIZE (GROUP_SIZE_X * GROUP_SIZE_Y)
+#define TILE_SIZE_X (GROUP_SIZE_X + 2 * BORDER_SIZE)
+#define TILE_SIZE_Y (GROUP_SIZE_Y + 2 * BORDER_SIZE)
+#define TILE_PIXEL_COUNT (TILE_SIZE_X * TILE_SIZE_Y)
+
+groupshared float gs_R[TILE_PIXEL_COUNT];
+groupshared float gs_G[TILE_PIXEL_COUNT];
+groupshared float gs_B[TILE_PIXEL_COUNT];
+
+struct ComputeIn {
+    uint3 GroupID           : SV_GroupID;           
+    uint3 GroupThreadID     : SV_GroupThreadID;     
+    uint3 DispatchThreadID  : SV_DispatchThreadID;  
+    uint  GroupIndex        : SV_GroupIndex;        
+};
+
+float3 LoadSample(uint ldsIndex) {
+    return float3(gs_R[ldsIndex], gs_G[ldsIndex], gs_B[ldsIndex]);
+}
+
+void StoreSample(ComputeIn cin) {
+	int2 GroupUL = cin.GroupID.xy * uint2(GROUP_SIZE_X, GROUP_SIZE_Y) - BORDER_SIZE;
+    for (uint i = cin.GroupIndex; i < TILE_PIXEL_COUNT; i += GROUP_SIZE) {
+        int2 ST = GroupUL + int2(i % TILE_SIZE_X, i / TILE_SIZE_X);
+        float2 uv = (ST * 2 + 0.5) * _TexDimes.zw;
+        float3 Color = _SourceTex.SampleLevel(gLinearClampSampler, uv, _SampleMipLevel).rgb;
+        gs_R[i] = Color.r;
+        gs_G[i] = Color.g;
+        gs_B[i] = Color.b;
+    }
+    GroupMemoryBarrierWithGroupSync();
+}
+
+[numthreads(GROUP_SIZE_X, GROUP_SIZE_Y, 1)]
+void CSMain (ComputeIn cin) { 
+	StoreSample(cin);
+    uint ldsIndex = (cin.GroupThreadID.x + BORDER_SIZE) + (cin.GroupThreadID.y + BORDER_SIZE) * TILE_SIZE_X;
+    float3 color0 = LoadSample(ldsIndex - TILE_SIZE_X - 1) * weights[0];
+	float3 color1 = LoadSample(ldsIndex - TILE_SIZE_X    ) * weights[1];
+    float3 color2 = LoadSample(ldsIndex - TILE_SIZE_X + 1) * weights[2];
+    float3 color3 = LoadSample(ldsIndex - 1)               * weights[3];
+    float3 color4 = LoadSample(ldsIndex)                   * weights[4];
+    float3 color5 = LoadSample(ldsIndex + 1)               * weights[5];
+    float3 color6 = LoadSample(ldsIndex + TILE_SIZE_X - 1) * weights[6];
+    float3 color7 = LoadSample(ldsIndex + TILE_SIZE_X)     * weights[7];
+    float3 color8 = LoadSample(ldsIndex + TILE_SIZE_X + 1) * weights[8];
+    float3 result = color0 + color1 + color2 + color3 + color4 + color5 + color6 + color7 + color8;
+	_ResultTex[cin.DispatchThreadID.xy] = result;	
+}

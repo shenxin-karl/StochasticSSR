@@ -1,0 +1,9 @@
+#pragma kernel CSMain
+
+Texture2D<float>    _SourceTex;
+RWTexture2D<float>  _ResultTex;
+
+[numthreads(8, 8, 1)]
+void CSMain (uint2 id : SV_DispatchThreadID) {
+	_ResultTex[id] = _SourceTex[id];
+}
