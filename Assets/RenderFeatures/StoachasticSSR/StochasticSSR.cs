@@ -1,10 +1,12 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
 public class StochasticSSR : ScriptableRendererFeature {
     private GenerateHizMapPass _generateHizMapPass;
     private PrefilterPass _prefilterPass;
-    public SSRSettings _settings;
+    private SSRTracePass _tracePass;
+    private SSRSettings _settings;
 
     public override void Create() {
         if (_settings == null) {
@@ -22,12 +24,16 @@ public class StochasticSSR : ScriptableRendererFeature {
         _generateHizMapPass.renderPassEvent = RenderPassEvent.AfterRenderingTransparents;
 
         _prefilterPass = new PrefilterPass(_settings);
-        _prefilterPass.renderPassEvent = RenderPassEvent.AfterRenderingPostProcessing;
+        _prefilterPass.renderPassEvent = (RenderPassEvent)_settings.PassEvent;
+
+        _tracePass = new SSRTracePass(_settings);
+        _tracePass.renderPassEvent = _prefilterPass.renderPassEvent + 1;
     }
 
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData) {
         renderer.EnqueuePass(_generateHizMapPass);
         renderer.EnqueuePass(_prefilterPass);
+        renderer.EnqueuePass(_tracePass);
     }
 }
 
