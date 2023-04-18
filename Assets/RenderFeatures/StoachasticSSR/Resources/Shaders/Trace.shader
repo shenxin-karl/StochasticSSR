@@ -2,23 +2,48 @@ Shader "Unlit/Trace" {
     Properties {
     }
     SubShader {
-        Tags { "RenderType"="Opaque" "RenderPipeline" = "UniversalPipeline"}
-        LOD 100
-        ZWrite Off Cull Off
+        Tags { "RenderType"="Opaque" "RenderPipeline" = "UniversalPipeline" }
+        Name "TracePass"
+        LOD     100
+        ZWrite  Off 
+        Cull    Off
+        ZTest   Off 
+        ZClip   Off 
+        Blend   Off
         Pass {
             HLSLPROGRAM
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-            #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
 
-            #pragma vertex Vert
+            #pragma vertex vert
             #pragma fragment frag
 
-            sampler2D _MainTex;
-            float4 _MainTex_ST;
-            float4 frag (Varyings pin) : SV_Target {
-                //float4 col = tex2D(_MainTex, pin.texcoord);
-                float4 col = float4(pin.texcoord, 0.0, 1.0);
-                return col; 
+            struct VertexIn {
+                float4 vertex   : POSITION;
+                float2 uv       : TEXCOORD0;
+            };
+
+            struct VertexOut {
+                float4 vertex : SV_POSITION;
+                float2 uv     : TEXCOORD0;
+            };
+
+            VertexOut vert(VertexIn vin) {
+                VertexOut vout;
+                vout.vertex = vin.vertex;
+                vout.uv = vin.uv;
+                return vout;
+            }
+
+            struct PixelOut {
+                float4 hitPosAndPdf : SV_TARGET0;
+                float  mask         : SV_TARGET1;
+            };
+
+            PixelOut frag (VertexOut pin) {
+                PixelOut pout;
+                pout.hitPosAndPdf = float4(pin.uv, 0.0, 1.0);
+                pout.mask = pin.uv.x;
+                return pout;  
             }
             ENDHLSL
         }
