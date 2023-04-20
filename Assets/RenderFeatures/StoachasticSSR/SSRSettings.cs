@@ -16,7 +16,7 @@ public class SSRSettings : ScriptableObject {
     public int NumPrefilter = 4;
 
     [SerializeField]
-    public Texture2D BlurTexture;
+    public Texture2D NoiseTexture;
 
     [SerializeField]
     public Texture2D BRDFTexture;

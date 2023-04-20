@@ -13,8 +13,8 @@ public class StochasticSSR : ScriptableRendererFeature {
             _settings = CreateInstance<SSRSettings>(); 
         }
 
-        if (_settings.BlurTexture == null) {
-            _settings.BlurTexture = Resources.Load<Texture2D>("Textures/BlueNoise");
+        if (_settings.NoiseTexture == null) {
+            _settings.NoiseTexture = Resources.Load<Texture2D>("Textures/BlueNoise");
         }
         if (_settings.BRDFTexture == null) {
             _settings.BRDFTexture = Resources.Load<Texture2D>("Textures/IBL_BRDF_LUT");
