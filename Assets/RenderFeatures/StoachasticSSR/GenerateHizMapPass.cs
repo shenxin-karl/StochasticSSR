@@ -92,6 +92,8 @@ class GenerateHizMapPass : ScriptableRenderPass {
         for (int i = 1; i < mipMaps.Length-1; ++i) {
             cmd.ReleaseTemporaryRT(mipMaps[i].id);
         }
+
+        cmd.SetGlobalTexture("_HizMap", _hizMapHandle.Identifier());
     }
 
     int GetMipMapCount(int width, int height) {
