@@ -23,4 +23,7 @@ public class SSRSettings : ScriptableObject {
 
     [SerializeField] 
     public int PassEvent = (int)RenderPassEvent.AfterRenderingPostProcessing;
+
+    [SerializeField] [Range(0, 1)] 
+    public float BRDFBias = 0.7f;
 }
